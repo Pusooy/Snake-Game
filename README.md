@@ -1,6 +1,6 @@
 # Snake Game
 
-<img src="demo.gif" width="500" height="500" />
+<img src="demo.gif" width="600" height="400" />
 
 ## Running Environment
 
