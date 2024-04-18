@@ -1,5 +1,7 @@
 # Snake Game
 
+![Demo GIF](demo.gif)
+
 ## Running Environment
 
 - Python 3.11
