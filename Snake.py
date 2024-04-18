@@ -4,7 +4,7 @@ import time
 from enum import Enum
 
 from PyQt6.QtCore import QBasicTimer, QTimer, Qt
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QPainter, QColor, QLinearGradient, QBrush
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 
@@ -75,11 +75,12 @@ class Snake:
     def __init__(self):
         self.food_position = None
         self.body_position = None
+        self.ignore_body_conflict = True
         self.block_size = 10  # Size of a single snake segment
         self.scores = 0  # Player's score
         self.frame_time = 50  # Time between game updates in milliseconds
-        self.height = 600  # Game area height
-        self.width = 800  # Game area width
+        self.height = 500  # Game area height
+        self.width = 700  # Game area width
         self.init_body_position()  # Set initial position
         self.direction = Direction.RIGHT  # Initial movement direction
         self.new_food()  # Create initial food position
@@ -97,7 +98,8 @@ class Snake:
     def judge_game(self):
         """Check for game over conditions."""
         if self.body_position[0] in self.body_position[1:]:
-            return True  # Snake head collided with its body
+            if self.ignore_body_conflict:
+                return True  # Snake head collided with its body
 
         x, y = self.body_position[0]
         if not (0 <= x < self.width and 0 <= y < self.height):
@@ -109,8 +111,8 @@ class Snake:
         """Place new food in the game area, ensuring it is not on the snake."""
         # Avoid placing food on top of the snake
         while True:
-            x = random.randint(0, self.width - self.block_size)
-            y = random.randint(0, self.height - self.block_size)
+            x = random.randint(0, self.width - self.block_size - 1)
+            y = random.randint(0, self.height - self.block_size - 1)
             position = (x // self.block_size * self.block_size,
                         y // self.block_size * self.block_size)
             if position not in self.body_position:
@@ -185,12 +187,13 @@ class SnakeGameWindow(QMainWindow):
 
         # Display the current status
         fps_str = f"FPS: {frame_rate:.2f}"
+        body_conflict_str = f"Body-Conflict: {self.snake.ignore_body_conflict}"
         direction_str = f"Direction: {self.snake.direction.name}"
         score_str = f"Score: {self.snake.scores}"
         auto_str = f"Auto-play: {'ON' if self.auto_play_enabled else 'OFF'}"
         position_str = f"Snake-Position: {self.snake.body_position[0]}"
         speed_str = f"Speed: {self.snake.frame_time}"
-        status = f"{speed_str} | {auto_str} | {score_str} | {position_str} | {fps_str} | {direction_str}"
+        status = f"{speed_str} | {auto_str} | {body_conflict_str} | {score_str} | {position_str} | {fps_str} | {direction_str}"
         self.statusBar().showMessage(status)
 
     def paintEvent(self, e):
@@ -203,13 +206,41 @@ class SnakeGameWindow(QMainWindow):
         self.frame_count += 1
 
     def draw_snake(self, painter):
-        """Draw the snake on the board."""
-        for index, (x, y) in enumerate(self.snake.body_position):
-            if index == 0:
-                painter.setBrush(QColor(255, 0, 0))  # Red color for the head
+        """Draw the snake on the board with enhanced visual effects."""
+        body_position = self.snake.body_position
+        block_size = self.snake.block_size
+
+        # Drawing snake body with gradient color and transparency
+        painter.setPen(Qt.PenStyle.NoPen)
+        for index, (x, y) in enumerate(body_position):
+            if index == 0:  # Snake head
+                # Head color
+                painter.setBrush(QColor(255, 0, 0))
+                painter.drawRect(x, y, block_size, block_size)
+                # Draw eyes
+                painter.setBrush(QColor(255, 255, 255))  # White eyes
+                eye_size = int(block_size / 4)
+                painter.drawEllipse(x + eye_size, y + eye_size, eye_size, eye_size)
+                painter.drawEllipse(x + 3 * eye_size, y + eye_size, eye_size, eye_size)
             else:
-                painter.setBrush(QColor(0, 255, 0))  # Green color for the body
-            painter.drawRect(x, y, self.snake.block_size, self.snake.block_size)
+                # Gradient color for body
+                gradient = QLinearGradient(x, y, x + block_size, y + block_size)
+                green_component = 255 - int(255 * index / len(body_position))
+                gradient.setColorAt(0, QColor(0, 255, 0, 255))
+                gradient.setColorAt(1, QColor(0, green_component, 0, 100))
+                painter.setBrush(QBrush(gradient))
+
+                # Draw body segments without border
+                painter.drawRect(x, y, block_size, block_size)
+
+            # Adding random spots
+            if index != 0:  # Avoid drawing on the head
+                spot_color = QColor(0, 0, 0, 50)  # Black spots with some transparency
+                painter.setBrush(spot_color)
+                for _ in range(random.randint(0, 2)):  # Random number of spots
+                    spot_x = x + random.randint(0, block_size)
+                    spot_y = y + random.randint(0, block_size)
+                    painter.drawEllipse(spot_x, spot_y, 2, 2)  # Small spots
 
     def draw_food(self, painter):
         """Draw the food on the board."""
@@ -237,6 +268,22 @@ class SnakeGameWindow(QMainWindow):
 
         return False
 
+    def safe_board_judge(self, target_direction):
+        """ Judge if the select direction to board ok."""
+        current_body_position = self.snake.body_position.copy()
+        head_x, head_y = current_body_position[0]
+        offset = direction_offsets[target_direction]
+        future_head_position = (head_x + offset[0] * self.snake.block_size, head_y + offset[1] * self.snake.block_size)
+        # Emulate the further step
+        current_body_position.insert(0, future_head_position)  # New head becomes first segment
+        current_body_position.pop()  # Remove last segment
+
+        for x, y in current_body_position:
+            if x < 0 or x >= self.snake.width - self.snake.block_size or y < 0 or y >= self.snake.height - self.snake.block_size:
+                return True  # hit the boundary
+
+        return False
+
     def detect_direction(self):
         """Auto select the best direction."""
         food_x = self.snake.food_position[0]
@@ -254,8 +301,14 @@ class SnakeGameWindow(QMainWindow):
             while self.safe_move_judge(random_direction):
                 count += 1
                 if count > 66:
-                    self.end_game()
+                    if self.snake.ignore_body_conflict:
+                        self.end_game()
+                    else:
+                        break
                 random_direction = random.choice([Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT])
+            if not self.snake.ignore_body_conflict:
+                while self.safe_board_judge(random_direction):
+                    random_direction = random.choice([Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT])
             self.snake.direction = random_direction
 
     def resizeEvent(self, event):
@@ -295,6 +348,10 @@ class SnakeGameWindow(QMainWindow):
         elif key == Qt.Key.Key_Space:
             # Toggle auto-play mode
             self.auto_play_enabled = not self.auto_play_enabled
+            self.snake.ignore_body_conflict = not self.snake.ignore_body_conflict
+        elif key == Qt.Key.Key_C:
+            # Toggle body-conflict mode
+            self.snake.ignore_body_conflict = not self.snake.ignore_body_conflict
 
     def timerEvent(self, event):
         """Handle timer events for game updates."""
