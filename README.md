@@ -1,5 +1,5 @@
 # Snake Game
-
+<img src="demo.gif" width="100" height="100" />
 ![Demo GIF](demo.gif)
 
 ## Running Environment
