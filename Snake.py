@@ -268,6 +268,8 @@ class SnakeGameWindow(QMainWindow):
             self.snake.direction = Direction.RIGHT
         elif key == Qt.Key.Key_R:
             self.snake = Snake()  # Reset the game
+            self.auto_play_timer.stop()
+            self.auto_play_timer.start(self.snake.frame_time, self)
         elif key == Qt.Key.Key_A:
             self.auto_play_timer.stop()
             self.snake.frame_time -= 2  # Acc the game
@@ -322,3 +324,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# nuitka --mingw64 --standalone --show-progress --show-memory --enable-plugin=pyqt6 --windows-disable-console --onefile --output-dir=nuitka_out  Snakes.py
