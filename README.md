@@ -31,6 +31,7 @@ There are two modes in the game: `Manual Mode` & `Auto Mode`
 3. Press `A` to speed up the game.
 4. Press `S` to slow down the game.
 5. Press `Space` to switch game modes.
+6. Press `C` to cancel the body conflict detect.
 
 ## Design Patterns
 
@@ -70,6 +71,7 @@ There are two modes in the game: `Manual Mode` & `Auto Mode`
 3. 按键 `A` 加速游戏。
 4. 按键 `S` 减速游戏。
 5. 按键 `空格` 切换游戏模式。
+6. 按键 `C` 取消身体碰撞检测。
 
 ## 设计模式
 
