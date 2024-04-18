@@ -42,15 +42,29 @@ def calculate_new_direction(src_x, src_y, dest_x, dest_y, current_dir):
     horizontal_movement = abs(delta_x) > abs(delta_y)
 
     if horizontal_movement:
-        if delta_x > 0 and current_dir != Direction.LEFT:
-            return Direction.RIGHT
-        elif delta_x < 0 and current_dir != Direction.RIGHT:
-            return Direction.LEFT
+        if delta_x > 0:
+            if current_dir != Direction.LEFT:
+                return Direction.RIGHT
+            else:
+                return Direction.DOWN
+        elif delta_x < 0:
+            if current_dir != Direction.RIGHT:
+                return Direction.LEFT
+            else:
+                return Direction.UP
+
     else:
-        if delta_y > 0 and current_dir != Direction.UP:
-            return Direction.DOWN
-        elif delta_y < 0 and current_dir != Direction.DOWN:
-            return Direction.UP
+        if delta_y > 0:
+            if current_dir != Direction.UP:
+                return Direction.DOWN
+            else:
+                return Direction.LEFT
+
+        elif delta_y < 0:
+            if current_dir != Direction.DOWN:
+                return Direction.UP
+            else:
+                return Direction.RIGHT
 
     return current_dir
 
@@ -324,6 +338,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 # nuitka --mingw64 --standalone --show-progress --show-memory --enable-plugin=pyqt6 --windows-disable-console --onefile --output-dir=nuitka_out  Snakes.py
